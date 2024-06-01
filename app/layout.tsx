@@ -1,24 +1,49 @@
-import type { Metadata } from "next";
+"use client";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import {
+  ThirdwebProvider,
+  metamaskWallet,
+  coinbaseWallet,
+  walletConnect,
+  embeddedWallet,
+
+} from "@thirdweb-dev/react";
+import { SnackbarProvider, closeSnackbar } from "notistack";
+import { IoClose } from "react-icons/io5";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata: Metadata = {
-  title: "Voyager",
-  description: "Travelling app",
-};
-
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-          {children}
-      </body>
+      <title>Voyager</title>
+        <ThirdwebProvider
+          activeChain="mumbai"
+          clientId="5be238b6d90aced04e9db46730f231da"
+          supportedWallets={[
+            metamaskWallet(),
+            coinbaseWallet({ recommended: true }),
+            walletConnect(),
+            embeddedWallet(),
+          ]}
+        >
+          <SnackbarProvider
+            action={(snackbarId) => (
+              <button onClick={() => closeSnackbar(snackbarId)}>
+                <IoClose className="h-6 w-6 pr-2 text-xl" />
+              </button>
+            )}
+          >
+            <body className="font-raleway text-sm text-gray-800">
+              <div>{children}</div>
+            </body>
+          </SnackbarProvider>
+        </ThirdwebProvider>
     </html>
   );
 }
