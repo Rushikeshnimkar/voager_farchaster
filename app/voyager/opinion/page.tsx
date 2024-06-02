@@ -37,7 +37,7 @@ const Opinion = () => {
                     </div>
                 </div>
                 <div className="bg-[#EDF5C1] p-8 pr-20 mb-4 rounded-lg mx-32 mt-10">
-                    <h2 className="text-2xl font-bold mb-2">5 SUI</h2>
+                    <h2 className="text-2xl font-bold mb-2">5 MATIC</h2>
                     <div className="flex justify-between items-center">
                         <div className="flex items-center">
                             <button className="mr-2">↑ 5</button>

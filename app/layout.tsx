@@ -23,8 +23,6 @@ export default function RootLayout({
     <html lang="en">
       <title>Voyager</title>
         <ThirdwebProvider
-          activeChain="mumbai"
-          clientId="5be238b6d90aced04e9db46730f231da"
           supportedWallets={[
             metamaskWallet(),
             coinbaseWallet({ recommended: true }),

@@ -15,9 +15,8 @@ import { FaHeart } from "react-icons/fa";
 import TabsCards from "@/app/components/profile_components/TabsCards";
 import { CiEdit } from "react-icons/ci";
 import Link from "next/link";
-import { blockvision } from "../../utils/blockvision";
 import EditProfilePopup from "@/app/components/profile_components/EditProfilePopup";
-import { SuiObjectData } from "@mysten/sui.js/client";
+
 interface UserData {
   id: string;
   user_address: string;
@@ -33,7 +32,6 @@ const Profile = () => {
   const [isEditProfileClicked, setIsEditProfileClicked] = useState(false);
   const [activeTab, setActiveTab] = useState("Cults");
   const [userData, setUserData] = useState<UserData>();
-  const [nftData, setNftData] = useState<SuiObjectData[]>([]);
 
   const IP_ADDRESS = process.env.NEXT_PUBLIC_SERVER_IP_ADDRESS;
 
@@ -73,18 +71,6 @@ const Profile = () => {
     })();
     // eslint-disable-next-line
   }, [userData]);
-
-  useEffect(() => {
-    (async () => {
-      const returnValue = await blockvision(userAddress);
-      const nftDataList = returnValue?.filter(
-        (data) =>
-          data?.content?.dataType === "moveObject" && data?.content?.type
-      );
-      setNftData(nftDataList);
-      console.log(nftDataList);
-    })();
-  }, [userAddress]);
 
   return (
     <main className="w-[95vw] mx-auto p-10">

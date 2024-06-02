@@ -9,25 +9,11 @@ import { useAddress } from "@thirdweb-dev/react";
 
 const Navbar = () => {
   const userAddress = useAddress();
-  console.log(userAddress);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [isUserLoggedIn, setIsUserLoggedIn] = useState<boolean>(false);
   const [userSubId, setUserSubId] = useState<string | undefined>();
-
-
-  const loginButtonRef = useRef<HTMLButtonElement>();
-  const logoutButtonRef = useRef<HTMLButtonElement>();
-
-  const handleLoginButtonClick = async () => {
-    loginButtonRef.current?.click();
-  };
 
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
-  };
-
-  const handleLogoutButtonClick = () => {
-    logoutButtonRef.current?.click();
   };
 
   return (
@@ -163,10 +149,6 @@ const Navbar = () => {
               >
                 <CgProfile className="text-4xl cursor-pointer" />
               </Link>
-              <IoIosLogOut
-                className="ml-2 text-3xl cursor-pointer"
-                onClick={handleLogoutButtonClick}
-              />
             </div>
           )  
             }

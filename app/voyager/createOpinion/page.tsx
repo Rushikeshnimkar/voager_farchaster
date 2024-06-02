@@ -32,10 +32,10 @@ const CreateOpinion = () => {
                                 Available for Local Guide
                             </button>
                             <button
-                                className={`py-2 px-4 rounded bg-gray-300 ${view === 'payInSui' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
-                                onClick={() => setView('payInSui')}
+                                className={`py-2 px-4 rounded bg-gray-300 ${view === 'payInMatic' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-600'}`}
+                                onClick={() => setView('payInMatic')}
                             >
-                                Pay in SUI
+                                Pay in MATIC
                             </button>
                         </div>
                     </div>
@@ -85,10 +85,10 @@ const CreateOpinion = () => {
                         </div>
                     )}
 
-                    {view === 'payInSui' && (
+                    {view === 'payInMatic' && (
                         <div className="mb-4 mt-8">
                             <div className="border border-gray-300 rounded p-4">
-                                <p className="text-gray-700 mb-4">Pay with SUI:</p>
+                                <p className="text-gray-700 mb-4">Pay with MATIC:</p>
                                 <button className="bg-blue-600 text-white rounded px-4 py-2">
                                     Pay now
                                 </button>
