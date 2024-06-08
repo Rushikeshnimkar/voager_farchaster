@@ -5,20 +5,18 @@ import "./common/IAccessMaster.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import {FunctionsClient} from "@chainlink/contracts/src/v0.8/functions/v1_0_0/FunctionsClient.sol";
+import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
+import {FunctionsRequest} from "@chainlink/contracts/src/v0.8/functions/v1_0_0/libraries/FunctionsRequest.sol";
 
-error VoyagerCollab__ProposalRejected();
-error VoyagerCollab_ClaimedNotPossible();
+error VoyagerRaid__ProposalRejected();
+error VoyagerRaid_ClaimedNotPossible();
 
 /**
- * @title VoyagerCollab - A Collaborative Crowdfunding NFT Smart Contract
+ * @title VoyagerRaid - A Raidorative Crowdfunding NFT Smart Contract
  * @dev This contract enables the creation of crowdfunding campaigns as NFTs. Each NFT represents a unique crowdfunding opportunity with milestones.
  */
-contract VoyagerCollab is Context, ERC721Enumerable {
-    using Counters for Counters.Counter;
-
-    Counters.Counter private _tokenIdTracker;
-
-    
+contract VoyagerRaid is Context, ERC721Enumerable,FunctionsClient {
 
     bool public pause; /// @notice if the contract is paused or not 
     bool public isCreatorStaked; /// @notice if creator has staked or not
@@ -32,6 +30,7 @@ contract VoyagerCollab is Context, ERC721Enumerable {
     uint256 public fundingActiveTime; /// @notice crowfund start time
     uint256 public fundingEndTime; /// @notice  crowfund end time
     uint256 public salePrice; /// @notice Sale Price of per NFT
+    uint256 public nextTokenId;
 
     uint8 public numberOfMileStones; /// @notice number of times user has taken out funding
 
@@ -43,10 +42,52 @@ contract VoyagerCollab is Context, ERC721Enumerable {
     IACCESSMASTER flowRoles;
     IERC20 token;
 
+    ///////////////////CHAINLINK/////////////////////////////
+    using FunctionsRequest for FunctionsRequest.Request;
+    bytes32 public s_lastRequestId;
+    bytes public s_lastResponse;
+    bytes public s_lastError;
+
+    // Custom error type
+    error UnexpectedRequestID(bytes32 requestId);
+
+    // Event to log responses
+    event Response(
+        bytes32 indexed requestId,
+        string character,
+        bytes response,
+        bytes err
+    );
+
+    // Check to get the router address for your supported network https://docs.chain.link/chainlink-functions/supported-networks
+    address router = 0xC22a79eBA640940ABB6dF0f7982cc119578E11De;
+
+    string source =
+        "const apiResponse = await Functions.makeHttpRequest({"
+        "url: `https://voyager.lz9.in/v1.0/snl/bool-values`,"
+        "});"
+        "if (apiResponse.error) {"
+        "throw Error('Request failed');"
+        "}"
+        "const { isPaused, isProposalCleared, isProposalRejected } = apiResponse.data;"
+        "return Functions.encodeBytes([isPaused, isProposalCleared, isProposalRejected]);";
+
+    //Callback gas limit
+    uint32 gasLimit = 300000;
+
+    bytes32 donID =
+        0x66756e2d706f6c79676f6e2d616d6f792d310000000000000000000000000000;
+
+    // State variable to store the returned character information
+    string public character;
+
+    
+
+
     modifier onlyOperator() {
         require(
             flowRoles.isOperator(_msgSender()),
-            "VoyagerCollab: User is not authorized"
+            "VoyagerRaid: User is not authorized"
         );
         _;
     }
@@ -54,7 +95,7 @@ contract VoyagerCollab is Context, ERC721Enumerable {
     modifier onlyProposalCreator() {
         require(
             _msgSender() == proposalCreator,
-            "VoyagerCollab: User is not proposal creator"
+            "VoyagerRaid: User is not proposal creator"
         );
         _;
     }
@@ -62,12 +103,12 @@ contract VoyagerCollab is Context, ERC721Enumerable {
     modifier onlyWhenProposalIsNotActive() {
         require(
             block.timestamp < fundingActiveTime,
-            "VoyagerCollab: Funding has been intiated , action cannot be performed"
+            "VoyagerRaid: Funding has been intiated , action cannot be performed"
         );
         _;
     }
     modifier onlyWhenNotPaused() {
-        require(pause == false, "VoyagerCollab: Funding is paused!");
+        require(pause == false, "VoyagerRaid: Funding is paused!");
         _;
     }
 
@@ -115,10 +156,15 @@ contract VoyagerCollab is Context, ERC721Enumerable {
         address indexed owner,
         uint256 indexed amount
     );
-    event Validate(
+
+     // Event to log responses
+    event Response(
+        bytes32 indexed requestId,
         bool isPaused,
-        bool isproposalCleared,
-        bool isproposalRejected
+        bool isProposalCleared,
+        bool isProposalRejected,
+        bytes response,
+        bytes err
     );
 
     /**
@@ -137,7 +183,7 @@ contract VoyagerCollab is Context, ERC721Enumerable {
         uint256[] memory proposalDetails,
         string memory _baseURI,
         address[] memory contractAddr
-    ) ERC721(proposalName, proposalSymbol) {
+    ) ERC721(proposalName, proposalSymbol) FunctionsClient(router){
         proposalCreator = _proposalCreator;
         require(
             proposalDetails.length == 4,
@@ -156,85 +202,6 @@ contract VoyagerCollab is Context, ERC721Enumerable {
         flowRoles = IACCESSMASTER(contractAddr[1]);
 
         pause = true;
-    }
-
-       using FunctionsRequest for FunctionsRequest.Request;
-
-    bytes32 public s_lastRequestId;
-    bytes public s_lastResponse;
-    bytes public s_lastError;
-
-    error UnexpectedRequestID(bytes32 requestId);
-
-    event Response(bytes32 indexed requestId, bytes response, bytes err);
-
-    constructor(
-        address router
-    ) FunctionsClient(router) ConfirmedOwner(msg.sender) {}
-
-    /**
-     * @notice Send a simple request
-     * @param source JavaScript source code
-     * @param encryptedSecretsUrls Encrypted URLs where to fetch user secrets
-     * @param donHostedSecretsSlotID Don hosted secrets slotId
-     * @param donHostedSecretsVersion Don hosted secrets version
-     * @param args List of arguments accessible from within the source code
-     * @param bytesArgs Array of bytes arguments, represented as hex strings
-     * @param subscriptionId Billing ID
-     */
-    function sendRequest(
-        string memory source,
-        bytes memory encryptedSecretsUrls,
-        uint8 donHostedSecretsSlotID,
-        uint64 donHostedSecretsVersion,
-        string[] memory args,
-        bytes[] memory bytesArgs,
-        uint64 subscriptionId,
-        uint32 gasLimit,
-        bytes32 donID
-    ) external onlyOwner returns (bytes32 requestId) {
-        FunctionsRequest.Request memory req;
-        req.initializeRequestForInlineJavaScript(source);
-        if (encryptedSecretsUrls.length > 0)
-            req.addSecretsReference(encryptedSecretsUrls);
-        else if (donHostedSecretsVersion > 0) {
-            req.addDONHostedSecrets(
-                donHostedSecretsSlotID,
-                donHostedSecretsVersion
-            );
-        }
-        if (args.length > 0) req.setArgs(args);
-        if (bytesArgs.length > 0) req.setBytesArgs(bytesArgs);
-        s_lastRequestId = _sendRequest(
-            req.encodeCBOR(),
-            subscriptionId,
-            gasLimit,
-            donID
-        );
-        return s_lastRequestId;
-    }
-
-    /**
-     * @notice Send a pre-encoded CBOR request
-     * @param request CBOR-encoded request data
-     * @param subscriptionId Billing ID
-     * @param gasLimit The maximum amount of gas the request can consume
-     * @param donID ID of the job to be invoked
-     * @return requestId The ID of the sent request
-     */
-    function sendRequestCBOR(
-        bytes memory request,
-        uint64 subscriptionId,
-        uint32 gasLimit,
-        bytes32 donID
-    ) external onlyOwner returns (bytes32 requestId) {
-        s_lastRequestId = _sendRequest(
-            request,
-            subscriptionId,
-            gasLimit,
-            donID
-        );
-        return s_lastRequestId;
     }
 
     /** Private/Internal Functions **/
@@ -260,14 +227,14 @@ contract VoyagerCollab is Context, ERC721Enumerable {
         uint256 amount
     ) private returns (bool) {
         uint256 value = token.balanceOf(from);
-        require(value >= amount, "VoyagerCollab: Not Enough Funds!");
+        require(value >= amount, "VoyagerRaid: Not Enough Funds!");
         bool success;
         if (from == address(this)) {
             success = token.transfer(to, amount);
-            require(success, "VoyagerCollab: Transfer failed");
+            require(success, "VoyagerRaid: Transfer failed");
         } else {
             success = token.transferFrom(from, to, amount);
-            require(success,"VoyagerCollab: Transfer failed");
+            require(success,"VoyagerRaid: Transfer failed");
         }
         emit FundsTransferred(from, to, amount);
         return success;
@@ -326,7 +293,7 @@ contract VoyagerCollab is Context, ERC721Enumerable {
         require(
             block.timestamp > fundingEndTime &&
                 fundsInReserve < crowdFundingGoal,
-            "VoyagerCollab: Rejection cannot be done"
+            "VoyagerRaid: Rejection cannot be done"
         );
         _proposalRejection();
         isProposalCleared = true;
@@ -340,7 +307,7 @@ contract VoyagerCollab is Context, ERC721Enumerable {
         uint256 stakingAmount = (crowdFundingGoal * 20) / 100;
         // require(
         //     amount == stakingAmount,
-        //     "VoyagerCollab: Funds should be equal to staking amount"
+        //     "VoyagerRaid: Funds should be equal to staking amount"
         // );
         // require(
         //     isCreatorStaked == false,
@@ -354,6 +321,56 @@ contract VoyagerCollab is Context, ERC721Enumerable {
         emit Staked(stakingAmount, isCreatorStaked);
     }
 
+
+     /**
+     * @notice Sends an HTTP request for character information
+     * @param subscriptionId The ID for the Chainlink subscription
+     * @param args The arguments to pass to the HTTP request
+     * @return requestId The ID of the request
+     */
+    function sendRequest(
+        uint64 subscriptionId,
+        string[] calldata args
+    ) external onlyOperator returns (bytes32 requestId) {
+        FunctionsRequest.Request memory req;
+        req.initializeRequestForInlineJavaScript(source); // Initialize the request with JS code
+        if (args.length > 0) req.setArgs(args); // Set the arguments for the request
+
+        // Send the request and store the request ID
+        s_lastRequestId = _sendRequest(
+            req.encodeCBOR(),
+            subscriptionId,
+            gasLimit,
+            donID
+        );
+
+        return s_lastRequestId;
+    }
+
+     /**
+     * @notice Callback function for fulfilling a request
+     * @param requestId The ID of the request to fulfill
+     * @param response The HTTP response data
+     * @param err Any errors from the Functions request
+     */
+    function fulfillRequest(
+        bytes32 requestId,
+        bytes memory response,
+        bytes memory err
+    ) internal override {
+        if (s_lastRequestId != requestId) {
+            revert UnexpectedRequestID(requestId); // Check if request IDs match
+        }
+        // Decode the response
+        (bool isPaused, bool isProposalCleared, bool isProposalRejected) = abi.decode(response, (bool, bool, bool));
+
+        // Update the contract's state variables with the response and any errors
+        s_lastResponse = response;
+        s_lastError = err;
+
+        // Emit an event to log the response
+        emit Response(requestId, isPaused, isProposalCleared, isProposalRejected, s_lastResponse, s_lastError);
+    }
    
     /**
      * @dev Mints an NFT representing a crowdfunding ticket and collects funds for the campaign.
@@ -365,25 +382,25 @@ contract VoyagerCollab is Context, ERC721Enumerable {
     function mintTicket() external returns (uint256) {
         require(
             isProposalRejected == false,
-            "VoyagerCollab : Proposal is being rejected"
+            "VoyagerRaid : Proposal is being rejected"
         );
         require(
             block.timestamp >= fundingActiveTime &&
                 block.timestamp < fundingEndTime,
-            "VoyagerCollab: Funding time has been passed"
+            "VoyagerRaid: Funding time has been passed"
         );
         if (isCreatorStaked == false) {
             _proposalRejection();
-            revert VoyagerCollab__ProposalRejected();
+            revert VoyagerRaid__ProposalRejected();
         }
         require(
             fundsInReserve < crowdFundingGoal,
-            "VoyagerCollab: Funding goal has been reached"
+            "VoyagerRaid: Funding goal has been reached"
         );
         _transferFunds(_msgSender(), address(this), salePrice);
         fundsInReserve += salePrice;
-        _tokenIdTracker.increment();
-        uint256 currentTokenID = _tokenIdTracker.current();
+        nextTokenId++;
+        uint256 currentTokenID = nextTokenId;
         _safeMint(_msgSender(), currentTokenID);
         emit TicketMinted(currentTokenID, _msgSender());
         return currentTokenID;
@@ -402,11 +419,11 @@ contract VoyagerCollab is Context, ERC721Enumerable {
         uint256 val = (crowdFundingGoal * 20) / 100;
         require(
             amount <= val && fundsInReserve > 0,
-            "VoyagerCollab: Amount to be collected more than staked"
+            "VoyagerRaid: Amount to be collected more than staked"
         );
         require(
             fundsInReserve >= amount,
-            "VoyagerCollab: Process cannot proceed , less than reserve fund"
+            "VoyagerRaid: Process cannot proceed , less than reserve fund"
         );
         fundsInReserve -= amount;
         _pause();
@@ -415,38 +432,6 @@ contract VoyagerCollab is Context, ERC721Enumerable {
         emit FundWithdrawnByHandler(numberOfMileStones, amount, wallet);
     }
 
-    
-    /**
-     * @notice Store latest result/error
-     * @param requestId The request ID, returned by sendRequest()
-     * @param response Aggregated response from the user code
-     * @param err Aggregated error from the user code or from the execution pipeline
-     * Either response or error parameter will be set, but never both
-     */
-    function fulfillRequest(
-        bytes32 requestId,
-        bytes memory response,
-        bytes memory err
-    ) internal override {
-        if (s_lastRequestId != requestId) {
-            revert UnexpectedRequestID(requestId);
-        }
-        s_lastResponse = response;
-        s_lastError = err;
-
-        if (s_lastResponse == true) {
-            if (fundsInReserve == 0) {
-                isProposalCleared = true;
-            } else {
-                _unpause();
-            }
-        } else {
-           else {
-                _pause();
-            }
-        }
-        emit Response(requestId, s_lastResponse, s_lastError);
-    }
    /**
      * @dev Allows users to claim back the amount they have deposited through purchasing tickets,
      * if either the funding goal is not reached or the proposal is rejected.
@@ -457,7 +442,7 @@ contract VoyagerCollab is Context, ERC721Enumerable {
      */
     function claimback(
         uint256 tokenId
-    ) external nonReentrant returns (uint256, bool) {
+    ) external  returns (uint256, bool) {
         require(
             ownerOf(tokenId) == _msgSender(),
             "Voyager: User is not the token owner"
@@ -484,7 +469,7 @@ contract VoyagerCollab is Context, ERC721Enumerable {
             emit RefundClaimed(tokenId, _msgSender(), refundValue);
             return (refundValue, refundStatus[tokenId]);
         } else {
-            revert VoyagerCollab_ClaimedNotPossible();
+            revert VoyagerRaid_ClaimedNotPossible();
         }
     }
 
@@ -565,7 +550,6 @@ contract VoyagerCollab is Context, ERC721Enumerable {
     function tokenURI(
         uint256 tokenId
     ) public view virtual override returns (string memory) {
-        require(_exists(tokenId), "VoyagerCollab: Non-Existent Asset");
         return baseURI;
     }
 

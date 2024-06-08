@@ -3,7 +3,7 @@ pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/Create2.sol";
-import "./interface/IERC6551Registry.sol";
+import "./common/IERC6551Registry.sol";
 
 /// @title Users can create there own smart contract Wallet or Token Bound Account
 /**

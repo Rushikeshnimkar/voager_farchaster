@@ -11,9 +11,9 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "./Bytecode.sol";
-import "./interface/IERC6551Account.sol";
+import "./common/IERC6551Account.sol";
 
-contract Voyager is
+contract VoyagerProfile is
     IERC165,
     IERC1271,
     IERC6551Account,
@@ -260,7 +260,7 @@ contract Voyager is
 
     function supportsInterface(
         bytes4 interfaceId
-    ) public view virtual override(IERC165, ERC1155Receiver) returns (bool) {
+    ) public view virtual override(IERC165, ERC1155Holder) returns (bool) {
         if (
             interfaceId == type(IERC165).interfaceId ||
             interfaceId == type(IERC6551Account).interfaceId
