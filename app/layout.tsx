@@ -11,7 +11,7 @@ import {
 } from "@thirdweb-dev/react";
 import { SnackbarProvider, closeSnackbar } from "notistack";
 import { IoClose } from "react-icons/io5";
-
+import App from "./voyager/farcester/page"
 const inter = Inter({ subsets: ["latin"] });
 
 export default function RootLayout({
@@ -37,6 +37,7 @@ export default function RootLayout({
               </button>
             )}
           >
+            <App/>
             <body className="font-raleway text-sm text-gray-800">
               <div>{children}</div>
             </body>

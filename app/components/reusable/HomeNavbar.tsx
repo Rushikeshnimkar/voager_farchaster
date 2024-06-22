@@ -37,7 +37,7 @@ const Navbar = () => {
       </div>
       <div className="hidden md:flex gap-4 items-center text-gray-500 font-space-grotesk font-semibold">
         <Link
-          href={userAddress ? "/voyager/random_chat/new" : "/"}
+          href={userAddress ? "/voyager/farcester" : "/"}
           className="hover:text-gray-600"
         >
           Meet New
