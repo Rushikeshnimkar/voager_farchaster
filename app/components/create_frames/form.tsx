@@ -1,5 +1,5 @@
 "use client";
-/* eslint-disable */
+
 import clsx from "clsx";
 import { customAlphabet } from "nanoid";
 import { useEffect, useRef, useState } from "react";

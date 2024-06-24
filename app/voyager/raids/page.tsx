@@ -32,11 +32,7 @@ const Raids = () => {
         <div className='mx-20'>
             <Navbar />
             <GalleryCreateForm/>
-            <Link href="/gallery">
-            <button className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-              All Galleries
-            </button>
-          </Link>
+           
             <div className="flex flex-col bg-[#FFFCF9]">
                 <div className="flex flex-col md:flex-row md:space-x-10">
                     <div className="h-[640px] w-[60%] overflow-hidden">
