@@ -37,7 +37,7 @@ export default function RootLayout({
               </button>
             )}
           >
-            <App/>
+          
             <body className="font-raleway text-sm text-gray-800">
               <div>{children}</div>
             </body>
