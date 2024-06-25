@@ -3,7 +3,7 @@ import Link from "next/link";
 import Footer from '@/app/components/reusable/Footer';
 import Navbar from '@/app/components/reusable/HomeNavbar'
 import React from 'react'
-import { GalleryCreateForm } from "../../components/create_frames/form";
+
 
 const Raids = () => {
     const cards = [
@@ -31,7 +31,7 @@ const Raids = () => {
     return (
         <div className='mx-20'>
             <Navbar />
-            <GalleryCreateForm/>
+            
            
             <div className="flex flex-col bg-[#FFFCF9]">
                 <div className="flex flex-col md:flex-row md:space-x-10">

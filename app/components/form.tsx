@@ -3,7 +3,7 @@
 import clsx from "clsx";
 import { customAlphabet } from "nanoid";
 import { useEffect, useRef, useState } from "react";
-import { useUploadThing } from "../../utils/uploadthing";
+import { useUploadThing } from "../utils/uploadthing";
 import slugify from "slugify";
 
 const HOST = process.env.NEXT_PUBLIC_HOST;
@@ -236,7 +236,7 @@ export function GalleryCreateForm() {
               <ul>
                 <li>
                   1. If you want to have something personalized like
-                 
+                  "complexlity", "based"
                 </li>
                 <li>
                   2. It can be risky if you use common words (someone may have
@@ -245,7 +245,7 @@ export function GalleryCreateForm() {
                 <li>
                   3. You can add more images to your gallery by supplying the
                   same id used in creation. <br />
-                  <strong>NOTE:</strong> If you  want others to add their
+                  <strong>NOTE:</strong> If you don't want others to add their
                   images to the gallery, put a password on initial creation.
                 </li>
               </ul>
@@ -299,7 +299,7 @@ export function GalleryCreateForm() {
               <ul>
                 <li>It represents the frame image aspect ratio</li>
                 <li>
-                  By default, it is 1.91:1 but  newly added support for
+                  By default, it is 1.91:1 but there's newly added support for
                   1:1 (square frames)
                 </li>
                 <li>
@@ -400,7 +400,7 @@ export function GalleryCreateForm() {
               <div className="text-start">
                 At the end of the image slide, do you want an external link that
                 takes the user outside the application? (maybe to learn more
-                about what showing). Then tick the checkbox.
+                about what you're showing). Then tick the checkbox.
                 <br />
                 <strong>NOTE:</strong> THIS OPTION CANNOT BE CHANGE IF YOU
                 UPDATE THE GALLERY IN FUTURE

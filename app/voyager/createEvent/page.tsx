@@ -7,6 +7,7 @@ import { enqueueSnackbar } from "notistack";
 import Navbar from "@/app/components/reusable/HomeNavbar";
 import { useRouter } from "next/navigation";
 import dayjs from "dayjs";
+import { GalleryCreateForm } from "@/app/components/form";
 
 const CreateEvent = () => {
     const router = useRouter();
@@ -33,6 +34,7 @@ const CreateEvent = () => {
         <>
             <main className="min-h-screen flex flex-col bg-blue-200">
                 <Navbar />
+                <GalleryCreateForm/>
                 <div className="flex-grow flex items-center justify-center">
                     <div className="bg-blue-200 p-10 rounded shadow-lg">
                         <Formik

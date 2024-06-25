@@ -44,7 +44,7 @@ const SoloRaids = () => {
                 <aside className="bg-[#75E2FF] w-80 p-12">
                     <div className="mb-6 bg-white p-4 rounded-2xl">
                         <img src="/calendar.jpg" className='rounded-full w-[20%]' />
-                        <a href="/voyager/createEvent"><button className="w-[80%] bg-black text-white py-2 rounded mt-6">+ Create a Raid</button></a>
+                        <a href="/app/voyager/pages"><button className="w-[80%] bg-black text-white py-2 rounded mt-6">+ Create a Raid</button></a>
                     </div>
                     <div className="mb-6 bg-white p-4 rounded-2xl">
                         <img src="/calendar.jpg" className='rounded-full w-[20%]' />
