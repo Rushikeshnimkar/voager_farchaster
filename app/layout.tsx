@@ -21,7 +21,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <title>Voyager</title>
+      <title></title>
         <ThirdwebProvider
           supportedWallets={[
             metamaskWallet(),

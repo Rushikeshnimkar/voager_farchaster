@@ -1,18 +1,24 @@
-"use client";
+// pages/create-event.tsx
 
+"use client";
+import { Formik, Form } from "formik";
+import { Input, InputNumber, DatePicker, Button } from "antd";
+import { enqueueSnackbar } from "notistack";
+import Navbar from "@/app/components/reusable/HomeNavbar";
+import { useRouter } from "next/navigation";
+import dayjs from "dayjs";
 import clsx from "clsx";
 import { customAlphabet } from "nanoid";
 import { useEffect, useRef, useState } from "react";
 import { useUploadThing } from "../utils/uploadthing";
 import slugify from "slugify";
+import { GalleryCreateForm } from "../components/Create_Frame/form";
 
 const HOST = process.env.NEXT_PUBLIC_HOST;
-
-export function GalleryCreateForm() {
+const CreateEvent = () => {
+  //---------------------------------------------------------------------------------------
   const nanoid = customAlphabet("0123456789abcdefghijklmnopqrstuvwxyz", 7);
-  const [initialUploadSortingType, setInitialUploadSortingType] = useState<
-    File[]
-  >([]);
+  const [initialUploadSortingType, setInitialUploadSortingType] = useState<File[]>([]);
   const [displayedFileList, setDisplayedFileList] = useState<File[]>([]);
 
   const [error, setError] = useState("");
@@ -42,29 +48,25 @@ export function GalleryCreateForm() {
   function showImages(e: any) {
     setError("");
     let files = e.target.files as File[];
-    if (files.length > 5) {
-      setError("Maximum of 5 images");
+    if (files.length !== 1) {
+      setError("Only one image is allowed");
       setInitialUploadSortingType([]);
       e.target.value = "";
       return;
     }
-    for (let i = 0; i < files.length; i++) {
-      const curr = files[i];
-      const currType = curr.type.replace(/(.*)\//g, "");
-      if (!["png", "jpeg", "jpg", "webp", "gif"].includes(currType)) {
-        setError("Only jpeg, png, jpg ,webp and gifs files are allowed");
-        setInitialUploadSortingType([]);
-        e.target.value = "";
-        return;
-      }
+    const curr = files[0];
+    const currType = curr.type.replace(/(.*)\//g, "");
+    if (!["png", "jpeg", "jpg", "webp", "gif"].includes(currType)) {
+      setError("Only jpeg, png, jpg, webp, and gif files are allowed");
+      setInitialUploadSortingType([]);
+      e.target.value = "";
+      return;
     }
-    files = [...files];
-    setInitialUploadSortingType([...files]);
+    setInitialUploadSortingType([curr]);
   }
 
   async function handleSubmit(event: any) {
     setError("");
-    let usedReadMoreLabel = readmoreLabel;
 
     event.preventDefault();
     if (displayedFileList.length === 0) {
@@ -72,36 +74,34 @@ export function GalleryCreateForm() {
       return;
     }
 
-    if (displayedFileList.length === 1) {
-      setError("Minimum of 2 images");
+    if (displayedFileList.length !== 1) {
+      setError("Only one image is allowed");
       return;
     }
 
     if (hasReadmore && !readmoreLink) {
-      setError(
-        'Enter an external link or uncheck the "Add read more" checkbox'
-      );
+      setError('Enter an external link or uncheck the "Add read more" checkbox');
       return;
     }
+
+    let usedReadMoreLabel = readmoreLabel;
     if (hasReadmore && !usedReadMoreLabel) usedReadMoreLabel = "Read More";
+
     setIsLoading(true);
     setLoadingMessage("Uploading Images...");
 
     let filesUploaded;
 
     try {
-      const fileUploadResponse = await startUpload(displayedFileList).catch(
-        (err) => {
-          console.log({ err });
-        }
-      );
+      const fileUploadResponse = await startUpload(displayedFileList).catch((err) => {
+        console.log({ err });
+      });
       filesUploaded = fileUploadResponse;
     } catch (error) {
       console.log({ error });
       setError("Something went wrong uploading the files");
     }
 
-    // let filesUploaded = true
     if (filesUploaded) {
       setLoadingMessage("Creating Gallery...");
       const filesToSendToKVStore = filesUploaded.map((file, index) => {
@@ -210,75 +210,116 @@ export function GalleryCreateForm() {
   }
 
   console.log({ frameRatio });
+  //-------------------------------------------------------------------------
+  const router = useRouter();
+
+  interface FormMessage {
+    description: string;
+    title: string;
+    priceperNFT: number;
+    funding_goal: number;
+    proposal_type: string;
+    date: any;
+  }
+
+  const initialValues: FormMessage = {
+    title: "",
+    description: "",
+    priceperNFT: 1,
+    funding_goal: 20,
+    proposal_type: "",
+    date: ``,
+  };
+  let submitAction: string | undefined = undefined;
 
   return (
     <>
-      {error && (
-        <p className="bg-red-300 px-4 py-2 rounded-lg w-[70%] mx-auto text">
-          {error}
-        </p>
-      )}
-      <div className="mx-8 w-full">
-        <form className="relative my-8 space-y-4" onSubmit={handleSubmit}>
-          <div>
-            <input
-              name="image_id"
-              id="image_id"
-              placeholder="Id of existing or new gallery (optional)"
-              className="pl-3 pr-28 py-3 mt-1 text-lg block w-full border border-gray-400 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring focus:ring-blue-300"
-              value={imageId}
-              onChange={(e) => {
-                setImageId(e.target.value);
+      <Navbar />
+      
+
+      <main className="min-h-screen flex flex-col bg-blue-200">
+        <div className="flex-grow flex items-center justify-center">
+          <div className="bg-blue-200 p-10 rounded shadow-lg">
+             <Formik
+              initialValues={initialValues}
+              onSubmit={(values, actions) => {
+                const { title, description, priceperNFT, funding_goal, date } = values;
+
+                const queryParams = new URLSearchParams({
+                  title,
+                  description,
+                  priceperNFT: priceperNFT.toString(),
+                  funding_goal: funding_goal.toString(),
+                  date: dayjs(date).toISOString(),
+                }).toString();
+
+                if (submitAction === "primary") {
+                  router.push(`/voyager/soloraids?${queryParams}`);
+                  enqueueSnackbar(`${values.title} has been proposed`, {
+                    variant: "success",
+                  });
+                } else {
+                  handleSubmit(event)
+                 
+                }
+                actions.setSubmitting(false);
               }}
-            />
-            <details className="text-start pl-3 pr-28 mt-1">
-              <summary className="text-gray-600">When to put an id?</summary>
-              <ul>
-                <li>
-                  1. If you want to have something personalized like
-                  "complexlity", "based"
-                </li>
-                <li>
-                  2. It can be risky if you use common words (someone may have
-                  already picked it)
-                </li>
-                <li>
-                  3. You can add more images to your gallery by supplying the
-                  same id used in creation. <br />
-                  <strong>NOTE:</strong> If you don't want others to add their
-                  images to the gallery, put a password on initial creation.
-                </li>
-              </ul>
-            </details>
-          </div>
-          <div>
-            <input
-              name="password"
-              id="password"
-              placeholder="Enter a password (optional)"
-              className="pl-3 pr-28 py-3 mt-1 text-lg block w-full border border-gray-400 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring focus:ring-blue-300"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-              }}
-            />
-            <details className="text-start pl-3 pr-28 mt-1">
-              <summary className="text-gray-600">
-                When to put a password?
-              </summary>
-              <ul>
-                <li>
-                  1. If you want to prevent others from being able to update
-                  your gallery
-                </li>
-                <li>
-                  2. Use something you can remember. If you forget it, you can
-                  no longer add more images to it
-                </li>
-              </ul>
-            </details>
-          </div>
-          <div>
+            >
+              {({ setFieldValue, values }) => (
+                <Form>
+                  <div className="text-black text-2xl mb-1 font-semibold">
+                    Create a Raid
+                  </div>
+                  <div className="text-black mb-6 italic">
+                    Submit your raid ideas for community crowdfunding
+                  </div>
+                  <div className="text-black flex flex-col gap-6">
+                    <div>
+                      <label className="font-medium" htmlFor="title">
+                        Raid Title
+                      </label>
+                      <div className="mt-2 w-[300px]">
+                        <Input
+                          style={{ background: "#4AA5F4" }}
+                          className="rounded-full text-white"
+                          required
+                          value={values.title}
+                          onChange={(e) => {
+                            setImageId(e.target.value); // Update imageId state
+                            setFieldValue("title", e.target.value); // Update title field value
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <input
+                        name="password"
+                        id="password"
+                        placeholder="Enter a password (optional)"
+                        className="pl-3 pr-28 py-3 mt-1 text-lg block w-full border border-gray-400 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring focus:ring-blue-300"
+                        value={password}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label className="font-medium" htmlFor="description">
+                        Description
+                      </label>
+                      <div className="mt-2 w-[300px]">
+                        <Input.TextArea
+                          style={{ background: "#4AA5F4" }}
+                          className="rounded-full text-white"
+                          required
+                          value={values.description}
+                          onChange={(e) => {
+                            setFieldValue("description", e.target.value);
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div>
             <select
               className="pl-3 pr-28 py-3 mt-1 text-lg block w-full border border-gray-400 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring focus:ring-blue-300"
               onChange={(e) => {
@@ -293,21 +334,8 @@ export function GalleryCreateForm() {
               <option value="1.91:1">1.91:1(default)</option>
               <option value="1:1">1.1</option>
             </select>
-
-            <details className="text-start pl-3 pr-28 mt-1">
-              <summary className="text-gray-600">What is this?</summary>
-              <ul>
-                <li>It represents the frame image aspect ratio</li>
-                <li>
-                  By default, it is 1.91:1 but there's newly added support for
-                  1:1 (square frames)
-                </li>
-                <li>
-                  Change it to 1:1 if you want you frame images to be a square
-                </li>
-              </ul>
-            </details>
           </div>
+
           <input
             ref={imagesRef}
             multiple
@@ -327,36 +355,42 @@ export function GalleryCreateForm() {
               );
             })}
           </div>
-          <div className="flex items-center py-3  px-4 mt-1 text-lg w-full border border-gray-400 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring focus:ring-blue-300 gap-2">
-            <span className="w-full text-start">Sort By: </span>
-            <select
-              onChange={(e) => {
-                setSortingType(e.target.value);
-              }}
-              name=""
-              id=""
-              value={sortingType}
-              className="w-full border-2  rounded-md border-gray-400 focus:border-gray-800 cursor-pointer"
-            >
-              <option value="default">System Default</option>
-              <option value="name">Name</option>
-              <option value="date">Date (Modified)</option>
-              <option value="size">Size</option>
-            </select>
-            <select
-              onChange={(e) => {
-                setSortingMethod(e.target.value);
-              }}
-              name=""
-              id=""
-              value={sortingMethod}
-              className="w-full border-2  rounded-md border-gray-500 focus:border-gray-800 cursor-pointer"
-            >
-              <option value="asc">Ascending</option>
-              <option value="desc">Descending</option>
-            </select>
-          </div>
-          <div className=" text-lg text-start gap-2">
+                    <div className="flex items-center gap-8">
+                      <div>
+                        <label className="font-medium" htmlFor="priceperNFT">
+                          Price per NFT
+                        </label>
+                        <div className="mt-2">
+                          <InputNumber
+                            style={{ background: "#4AA5F4" }}
+                            className="rounded-full text-white"
+                            required
+                            value={values.priceperNFT}
+                            onChange={(e) => {
+                              setFieldValue("priceperNFT", e);
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="font-medium" htmlFor="funding_goal">
+                          Funding Goal
+                        </label>
+                        <div className="mt-2">
+                          <InputNumber
+                            style={{ background: "#4AA5F4" }}
+                            className="rounded-full text-white"
+                            required
+                            value={values.funding_goal}
+                            onChange={(e) => {
+                              setFieldValue("funding_goal", e);
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className=" text-lg text-start gap-2">
             <div className="px-2">
               <input
                 onChange={(e) => {
@@ -382,7 +416,7 @@ export function GalleryCreateForm() {
                   type="text"
                   placeholder="Enter the external link here"
                   className="pl-3 pr-28 py-3 mt-1 my-2
-                  text-lg block w-full border border-gray-400 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring focus:ring-blue-300"
+                    text-lg block w-full border border-gray-400 rounded-md text-gray-900 placeholder-gray-400 focus:outline-none focus:ring focus:ring-blue-300"
                 />
                 <input
                   value={readmoreLabel}
@@ -395,50 +429,69 @@ export function GalleryCreateForm() {
                 />
               </>
             ) : null}
-            <details className="px-4 m-1">
-              <summary className="text-gray-600">What is this? </summary>
-              <div className="text-start">
-                At the end of the image slide, do you want an external link that
-                takes the user outside the application? (maybe to learn more
-                about what you're showing). Then tick the checkbox.
-                <br />
-                <strong>NOTE:</strong> THIS OPTION CANNOT BE CHANGE IF YOU
-                UPDATE THE GALLERY IN FUTURE
-              </div>
-            </details>
           </div>
-          <div className={"pt-4 flex justify-end gap-4"}>
-            <button
-              className={clsx(
-                "flex items-center p-1 justify-center px-4 h-10 text-lg border bg-red-500 text-white rounded-md focus:outline-none focus:ring focus:ring-red-300 hover:bg-red-700 focus:bg-red-700",
-                isLoading &&
-                  "disabled cursor-not-allowed bg-red-100 hover:bg-red-100 focus:bg-red-100"
-              )}
-              type="button"
-              disabled={isLoading}
-              onClick={() => {
-                setInitialUploadSortingType([]);
-                imagesRef.current!.value = "";
-              }}
-            >
-              Clear
-            </button>
-            <button
+                    <div>
+                      <label htmlFor="date" className="block mb-2">
+                        Valid till
+                      </label>
+                      <DatePicker
+                        style={{ background: "#4AA5F4" }}
+                        className="rounded-full text-white"
+                        onChange={(e) => {
+                          setFieldValue("date", e);
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className={"pt-4 flex justify-end gap-4"}>
+          
+                  <button
               className={clsx(
                 "flex items-center p-1 justify-center px-4 h-10 text-lg border bg-blue-500 text-white rounded-md focus:outline-none focus:ring focus:ring-blue-300 hover:bg-blue-700 focus:bg-blue-700",
                 isLoading &&
                   "disabled cursor-not-allowed bg-blue-100 hover:bg-blue-100 focus:bg-blue-100"
               )}
+              id="propose"
               type="submit"
               disabled={isLoading}
             >
               {isLoading ? loadingMessage : "Create"}
             </button>
           </div>
-        </form>
+                  <div className="mt-5">
+                    <button
+                      style={{
+                        color: "white",
+                        borderRadius: "9999px",
+                        background: "#0F4C81",
+                      }}
+                      
+                      className="hover:bg-sky-500 p-4"
+                      type="submit"
+                      id="pr"
+                      onClick={() => {
+                        submitAction = "primary";
+                       
+                      }}
+                      
+                    >
+                      
+                      Create Proposal
+                    </button>
+          </div>
+                  <div className="mt-5">
+              
+                  </div>
+                </Form>
+                
+              )}
+              
 
-        {warpcastUrl && (
-          <div className="flex items-center gap-2 bg-purple-900 text-white p-4 m-2">
+            </Formik>
+            
+          </div>
+          {warpcastUrl && (
+          <div className="flex items-center gap-2 bg-purple-900 text-white p-4 m-2 z-10">
             <span>
               Share on warpcast:
               <span className="m-1 text-green-200">{warpcastUrl}</span>
@@ -454,8 +507,15 @@ export function GalleryCreateForm() {
             </button>
           </div>
         )}
-      </div>
-      <div className="w-full"></div>
+    
+      <div className="w-screen"></div>
+          
+        </div>
+      </main>
     </>
   );
-}
+
+  // form.tsx
+};
+
+export default CreateEvent;

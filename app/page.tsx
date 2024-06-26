@@ -10,6 +10,7 @@ import "tailwindcss/tailwind.css";
 
 
 
+
 const images = [
   { src: "/mug.png", caption: "Voyager has been a" },
   { src: "/button.png", caption: "I've made lifelong" },
@@ -22,6 +23,7 @@ export default function Home() {
     <main className="w-[full] mx-auto bg-[#FFFCF9] ">
       <div className="mx-20">
         <HomeNavbar />
+       
      
       </div>
       <div className="bg-white">
